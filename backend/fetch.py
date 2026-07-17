@@ -11,9 +11,8 @@ import trafilatura
     #print(soup)
 
 
-def scraper():
-    url = "https://apnews.com/article/ice-david-brouillette-johan-guerrero-maine-shooting-dbc30d6d59e2a95fb470afc188e125c6"
+def scraper(url):
     downloaded = trafilatura.fetch_url(url)
-    data = trafilatura.extract(downloaded, output_format="json", with_metadata=True)
+    data = trafilatura.extract(downloaded, output_format="json", with_metadata=True, favor_precision=True, prune_xpath="//h1 | //h2 | //h3")
 
     return data

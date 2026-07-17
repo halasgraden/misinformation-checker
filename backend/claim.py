@@ -2,15 +2,15 @@ import spacy
 import json
 from fetch import scraper
 
-def get_article_text():
-    raw_json = scraper()
+def get_article_text(url):
+    raw_json = scraper(url)
     parsed = json.loads(raw_json)
     return parsed["raw_text"]
 
-def get_claim(top_n=8):
+def get_claims(url, top_n=8):
     
     nlp = spacy.load("en_core_web_sm")
-    text = get_article_text()
+    text = get_article_text(url)
     doc = nlp(text)
     sents = list(doc.sents)
 
@@ -30,5 +30,3 @@ def get_claim(top_n=8):
 
     top_claims = [text for count, text in scored[:top_n]]
     return top_claims
-    
-print(get_claim())
