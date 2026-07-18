@@ -13,6 +13,8 @@ import trafilatura
 
 def scraper(url):
     downloaded = trafilatura.fetch_url(url)
-    data = trafilatura.extract(downloaded, output_format="json", with_metadata=True, favor_precision=True, prune_xpath="//h1 | //h2 | //h3")
-
-    return data
+    if downloaded != None:
+        data = trafilatura.extract(downloaded, output_format="json", with_metadata=True, favor_precision=True, prune_xpath="//h1 | //h2 | //h3")
+        return data
+    else:
+        raise ValueError("Forbidden: Access to the provided URL has been denied.")       

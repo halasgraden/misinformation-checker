@@ -1,13 +1,39 @@
-from fastapi import FastAPI
-from factcheck import get_fact_check
+from fastapi import FastAPI, HTTPException
+from factcheck import get_all_fact_checks
+from claim import get_claims
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
-'''
+
 app = FastAPI()
 
-@app.get("factchecktools.googleapis.com")
-def get_fact_check():
-    return get_fact_check
-'''
+origins = ['*']
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class Review(BaseModel):
+    rating: str | None = None
+    url: str | None = None
+    publisher: str | None = None
+
+class ClaimItem(BaseModel):
+    claim: str
+    status: str
+    reviews: list[Review] = []
+
+class AnalysisResponse(BaseModel):
+    url: str
+    claims: list[ClaimItem]
+
+class AnalysisRequest(BaseModel):
+    url: str
+
 
 def build_response(url, claims_with_results):
     output_claims = []
@@ -20,12 +46,18 @@ def build_response(url, claims_with_results):
         if "claims" in entry["result"] and len(entry["result"]["claims"]) > 0: #check if claim exists
             reviews = []
             for matches in result["claims"]:
-                for reviews in matches.get("claimReview", []):
+                for review in matches.get("claimReview", []):
                     reviews.append({
-                        "claim": claim_text,
-                        "status": "fact_checks_found",
-                        "reviews": reviews,
+                        "rating": review.get("textualRating"),
+                        "url": review.get("url"),
+                        "publisher": review.get("publisher", {}).get("name"),
                     })
+
+                output_claims.append({
+                "claim": claim_text,
+                "status": "fact_checks_found",
+                "reviews": reviews,
+            })
         else:
             output_claims.append({
                 "claim": claim_text,
@@ -37,3 +69,13 @@ def build_response(url, claims_with_results):
         "url": url,
         "claims": output_claims,
     }
+
+@app.post("/analyze")
+async def pass_request(request: AnalysisRequest):
+    try:
+        claims = get_claims(request.url)
+        results = get_all_fact_checks(claims)
+        response = build_response(request.url, results)
+        return response
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access is forbidden.")
